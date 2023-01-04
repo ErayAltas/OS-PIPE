@@ -30,7 +30,7 @@ struct arg_struct
     char *arg2;
 };
 
-int getCount()
+int getActiveFileCount()
 {
     int file_count = 0;
     for (int i = 0; i < file_list; i++)
@@ -44,11 +44,11 @@ int getCount()
     return file_count;
 }
 
-void *create(char *args)
+void *createFile(char *args)
 {
     pthread_mutex_lock(&lock);
 
-    int count = getCount();
+    int count = getActiveFileCount();
     printf("count : %d\n", count);
 
     if (count <= 10)
@@ -104,7 +104,7 @@ void *create(char *args)
     pthread_mutex_unlock(&lock); // unlock mutex
 }
 
-void *delete(char *args)
+void *deleteFile(char *args)
 {
 
     pthread_mutex_lock(&lock); // lock mutex
@@ -186,7 +186,7 @@ void *writeFile(char *args)
     pthread_mutex_unlock(&lock); // unlock mutex
 }
 
-void *myRead(char *args)
+void *readFile(char *args)
 {
     pthread_mutex_lock(&lock); // lock mutex
 
@@ -262,21 +262,24 @@ char **tokenizeCommands(char *array)
 
 int main()
 {
+    pthread_mutex_init(&lock, NULL); // init mutex and cond
+    pthread_cond_init(&cond, NULL);
 
     char **commands;
     void *status;
     int fd;
     char *myfifo = "/tmp/myfifo"; // fifo
-    char buf[DATA_SIZE];
     memset(file_list, '\0', sizeof(file_list));
-
-    pthread_mutex_init(&lock, NULL); // init mutex and cond
-    pthread_cond_init(&cond, NULL);
 
     while (1)
     {
-        fd = open(myfifo, O_RDONLY); // open the pipe for writing
+        char buf[DATA_SIZE];
+
+        fd = open(myfifo, O_RDONLY); // open the pipe for reading
         read(fd, buf, DATA_SIZE);
+        close(fd);
+
+        printf("buf : %s\n", buf);
 
         commands = tokenizeCommands(buf); // tokenize buf to execute commands
 
@@ -285,18 +288,22 @@ int main()
         arg_struct.arg1 = commands[1];
         arg_struct.arg2 = commands[2];
 
+        printf("command 1 : %s\n", commands[1]);
+        printf("command 2 : %s\n", commands[2]);
+
         if (strcmp(commands[0], "init") == 0) // if first parameter is init
         {
             count++;
+            strcpy(response, "Client initiliazed!"); // fill the response
             printf("%d\n", count);
         }
         else if (strcmp(commands[0], "create") == 0) // if first parameter is create then call create
         {
-            pthread_create(&threads[0], NULL, create, &arg_struct);
+            pthread_create(&threads[0], NULL, createFile, &arg_struct);
         }
         else if (strcmp(commands[0], "delete") == 0) // if first parameter is delete then call delete
         {
-            pthread_create(&threads[1], NULL, delete, &arg_struct);
+            pthread_create(&threads[1], NULL, deleteFile, &arg_struct);
         }
         else if (strcmp(commands[0], "write") == 0) // if first parameter is write then call write
         {
@@ -304,7 +311,7 @@ int main()
         }
         else if (strcmp(commands[0], "read") == 0) // if first parameter is read then call read
         {
-            pthread_create(&threads[3], NULL, myRead, &arg_struct);
+            pthread_create(&threads[3], NULL, readFile, &arg_struct);
         }
         else if (strcmp(commands[0], "exit") == 0) // if first parameter is exit then call exit
         {
