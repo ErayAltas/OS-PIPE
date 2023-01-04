@@ -11,56 +11,58 @@
 
 #define DATA_SIZE 128
 
-int getIndex(char *data)
+int getLen(char *data)
 {
-    int index = 0;
-    for (int i = 0; data[i] != '\0'; i++)
+    int len = 0;
+    int i = 0;
+
+    while (data[i] != '\0')
     {
-        index++;
+        len++;
+        i++;
     }
-    return index;
+
+    return len;
 }
 
-int main(int argc, char *argv[])
+main()
 {
-    int fd;
     int isRunning = 1;
-    char *myfifo = "/tmp/myfifo";
+    int fd;
 
+    char *myfifo = "/tmp/file_manager_named_pipe";
     mkfifo(myfifo, 0666);
-    char response2[DATA_SIZE];
-    char init[DATA_SIZE] = "init";
-    fd = open(myfifo, O_WRONLY);   // open pipe to write
-    write(fd, init, sizeof(init)); // write pipe to init clients
-    close(fd);                     // close pipe
+
+    char initData[DATA_SIZE] = "init";
+
+    fd = open(myfifo, O_WRONLY);           // open pipe to write
+    write(fd, initData, sizeof(initData)); // write pipe to init clients
+    close(fd);                             // close pipe
 
     while (isRunning)
     {
-
-        char input[DATA_SIZE];
+        char data[DATA_SIZE];
         char response[DATA_SIZE];
 
-        fgets(input, DATA_SIZE, stdin); // get input from client
+        fgets(data, DATA_SIZE, stdin); // get input from client
 
-        if (input[getIndex(input) - 1] == '\n')
-        { // check input for last index
-            input[getIndex(input) - 1] = '\0';
+        if (data[getLen(data) - 1] == '\n') // check input for last index
+        {
+            data[getLen(data) - 1] = '\0';
         }
 
-        fd = open(myfifo, O_WRONLY);     // open pipe for writing
-        write(fd, input, sizeof(input)); // write to pipe
+        fd = open(myfifo, O_WRONLY);   // open pipe for writing
+        write(fd, data, sizeof(data)); // write to pipe
         close(fd);
 
-        if (strcmp(input, "exit") == 0)
+        if (strcmp(data, "exit") == 0)
         {
             isRunning = 0;
         }
 
-        fd = open(myfifo, O_RDONLY);   // open pipe to read
-        read(fd, response, DATA_SIZE); // read pipe
-        close(fd);
+        fd = open(myfifo, O_RDONLY); // open pipe to read
+        read(fd, response, DATA_SIZE);     // read pipe
         printf("%s\n", response);
     }
-
     return 0;
 }
