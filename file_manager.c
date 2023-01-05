@@ -10,6 +10,15 @@
 #include <sys/ipc.h>
 
 #define DATA_SIZE 128
+#define FILE_NOT_FOUND "File not found!"
+#define FILE_FULL "File list is full!"
+#define FILE_CREATED "File created!"
+#define FILE_ALREADY_IN_LIST "File is already in the list!"
+#define FILE_DELETED "File deleted!"
+#define FILE_WROTE "File wrote!"
+#define FILE_READ "File read!"
+#define CLIENT_IS_READY "Ready to communicate!.."
+#define CLIENT_FINISHED "Client has finished!"
 
 const int file_count = 10;
 const int thread_count = 5;
@@ -68,12 +77,12 @@ char **tokenizeCommands(char *str)
 
 void *createFile(char *args)
 {
-    pthread_mutex_lock(&lock);
+    pthread_mutex_lock(&lock); // lock mutex
 
-    int count = getActiveFileCount();
+    int count = getActiveFileCount(); // get active file count
     printf("count : %d\n", count);
 
-    if (count < 10)
+    if (count < 10) // since the max file count will be 10, it is necessary to check.
     {
         struct arg_struct *arg_struct = args; // get args
         char *filename = arg_struct->arg1;
@@ -83,7 +92,7 @@ void *createFile(char *args)
         int idx = -1; // int value to check file exists or not
         for (int i = 0; i < file_count; i++)
         {
-            if (file_list[i] != NULL)
+            if (file_list[i] != NULL) // TODO strlen
             {
                 if (strcmp(file_list[i], filename) == 0) // check file exists or not
                 {
@@ -93,12 +102,12 @@ void *createFile(char *args)
         }
         if (idx == -1) // if value == -1 then file not exists, create new file
         {
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < file_count; i++)
             {
                 if (file_list[i][0] == '\0')
                 {
-                    strcpy(file_list[i], filename);    // add filename to the list
                     FILE *file = fopen(filename, "w"); // open file
+                    strcpy(file_list[i], filename);    // add filename to the list
 
                     fclose(file);
 
@@ -122,7 +131,7 @@ void *createFile(char *args)
         strcpy(response, "File list is full!"); // fill the response
     }
 
-    pthread_mutex_unlock(&lock);
+    pthread_mutex_unlock(&lock); // unlock mutex
 }
 
 void *deleteFile(char *args)
@@ -149,8 +158,9 @@ void *deleteFile(char *args)
 
     if (idx != -1)
     {
-        file_list[idx][0] = '\0';          // remove from file list
-        remove(filename);                  // remove from system
+        file_list[idx][0] = '\0'; // remove from file list
+        remove(filename);         // remove from system
+
         strcpy(response, "File deleted!"); // fill the response
     }
     else
@@ -167,10 +177,10 @@ void *writeFile(char *args)
 
     struct arg_struct *arg_struct = args; // get args
     char *filename = arg_struct->arg1;
-    char *data = arg_struct->arg2;
+    char *content = arg_struct->arg2;
 
     printf("filename : %s\n", filename);
-    printf("data : %s\n", data);
+    printf("content : %s\n", content);
 
     int idx = -1;
 
@@ -190,11 +200,11 @@ void *writeFile(char *args)
     {
 
         FILE *file = fopen(filename, "a+"); // open file in append mode
-        fprintf(file, "%s\n", data);        // write to file
+        fprintf(file, "%s\n", content);     // write to file
 
         fclose(file);
 
-        strcpy(response, "File wr!"); // fill the response
+        strcpy(response, "File wrote!"); // fill the response
     }
     else
     {
@@ -240,7 +250,7 @@ void *readFile(char *args)
             i++;
         }
 
-        if (content[i - 1] == '\n') // delete \n for content
+        if (content[i - 1] == '\n') // delete '\n' char for content
         {
             content[i - 1] = '\0';
         }
@@ -286,7 +296,7 @@ int main(int argc, char *argv[])
         {
             count++;
             printf("%d.client is initiliazed\n", count);
-            
+
             strcpy(response, "Ready to communicate!.."); // fill the response
             responseValue = 1;
         }
@@ -312,20 +322,20 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(commands[0], "exit") == 0) // if first parameter is exit then call exit
         {
-            printf("Client has been logged out.\n");
-            strcpy(response, "Program has finished\n");
+            printf("Client logged out!");
+            strcpy(response, "Client finished!"); // fill the response
             responseValue = 1;
-            count--;
+            count--; // decrease active client count
             if (count == 0)
             {
-                fd = open(named_pipe, O_WRONLY);
+                fd = open(named_pipe, O_WRONLY); // open pipe and write
                 write(fd, response, sizeof(response));
                 close(fd);
-                exit(0);
+                exit(0); // finish program
             }
         }
-        // join threads
-        for (int i = 0; i < 4; i++)
+        // wait threads until they finish
+        for (int i = 0; i < thread_count; i++)
         {
             pthread_join(threads[i], NULL);
         }
