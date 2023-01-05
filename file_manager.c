@@ -55,23 +55,28 @@ int getActiveFileCount()
 
 char **tokenizeCommands(char *str)
 {
-    int i = 0;
-    char **commands;
-
-    char *param = strtok(str, " ");
-    commands = malloc(10 * sizeof(char *));
+    // Allocate memory for the array of strings
+    char **commands = malloc(10 * sizeof(char *));
     for (int i = 0; i < 10; i++)
     {
+        // Allocate memory for each individual string
         commands[i] = malloc(50 * sizeof(char));
     }
 
-    while (param != NULL)
+    // Initialize variables for strtok loop
+    int i = 0;
+    char *parameter = strtok(str, " ");
+
+    // Tokenize the input string
+    while (parameter != NULL)
     {
-        *(commands + i) = param;
+        // Copy the current token into the commands array
+        strcpy(commands[i], parameter);
         i++;
-        param = strtok(NULL, " ");
+        parameter = strtok(NULL, " ");
     }
 
+    // Return the array of commands
     return commands;
 }
 
