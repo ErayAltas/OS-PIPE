@@ -31,7 +31,7 @@ pthread_cond_t cond;
 
 char response[DATA_SIZE];
 
-int count = 0;
+int activeClientCount = 0;
 
 struct arg_struct
 {
@@ -299,8 +299,8 @@ int main(int argc, char *argv[])
 
         if (strcmp(commands[0], "init") == 0) // if first parameter is init
         {
-            count++;
-            printf("%d.client is initiliazed\n", count);
+            activeClientCount++;
+            printf("%d.client is connected\n", activeClientCount);
 
             strcpy(response, "Ready to communicate!.."); // fill the response
             responseValue = 1;
@@ -330,8 +330,8 @@ int main(int argc, char *argv[])
             printf("Client logged out!");
             strcpy(response, "Client finished!"); // fill the response
             responseValue = 1;
-            count--; // decrease active client count
-            if (count == 0)
+            activeClientCount--; // decrease active client activeClientCount
+            if (activeClientCount == 0)
             {
                 fd = open(named_pipe, O_WRONLY); // open pipe and write
                 write(fd, response, sizeof(response));
