@@ -17,8 +17,9 @@
 #define FILE_DELETED "File deleted!"
 #define FILE_WROTE "File wrote!"
 #define FILE_READ "File read!"
-#define CLIENT_IS_READY "Ready to communicate!.."
-#define CLIENT_FINISHED "Client has finished!"
+#define CLIENT_IS_READY "Ready to communicate.."
+#define CLIENT_FINISHED "Exited"
+#define INVALID_COMMAND "INVALID COMMAND!"
 
 const int file_count = 10;
 const int thread_count = 5;
@@ -85,7 +86,6 @@ void *createFile(char *args)
     pthread_mutex_lock(&lock); // lock mutex
 
     int count = getActiveFileCount(); // get active file count
-    printf("count : %d\n", count);
 
     if (count < 10) // since the max file count will be 10, it is necessary to check.
     {
@@ -116,14 +116,14 @@ void *createFile(char *args)
 
                     fclose(file);
 
-                    strcpy(response, "File created!"); // fill the response
+                    strcpy(response, FILE_CREATED); // fill the response
                     break;
                 }
             }
         }
         else // file exists
         {
-            strcpy(response, "File is already in the list!"); // fill the response
+            strcpy(response, FILE_ALREADY_IN_LIST); // fill the response
         }
         // print list of files
         for (int i = 0; i < file_count; i++)
@@ -133,7 +133,7 @@ void *createFile(char *args)
     }
     else
     {
-        strcpy(response, "File list is full!"); // fill the response
+        strcpy(response, FILE_FULL); // fill the response
     }
 
     pthread_mutex_unlock(&lock); // unlock mutex
@@ -166,11 +166,11 @@ void *deleteFile(char *args)
         file_list[idx][0] = '\0'; // remove from file list
         remove(filename);         // remove from system
 
-        strcpy(response, "File deleted!"); // fill the response
+        strcpy(response, FILE_DELETED); // fill the response
     }
     else
     {
-        strcpy(response, "File not found!"); // fill the response
+        strcpy(response, FILE_NOT_FOUND); // fill the response
     }
 
     pthread_mutex_unlock(&lock); // unlock the mutex
@@ -209,11 +209,11 @@ void *writeFile(char *args)
 
         fclose(file);
 
-        strcpy(response, "File wrote!"); // fill the response
+        strcpy(response, FILE_WROTE); // fill the response
     }
     else
     {
-        strcpy(response, "File not found!"); // fill the response
+        strcpy(response, FILE_NOT_FOUND); // fill the response
     }
 
     pthread_mutex_unlock(&lock); // unlock mutex
@@ -266,7 +266,7 @@ void *readFile(char *args)
     }
     else
     {
-        strcpy(response, "File not found!"); // fill the response
+        strcpy(response, FILE_NOT_FOUND); // fill the response
     }
 
     pthread_mutex_unlock(&lock); // unlock the mutex
@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
             activeClientCount++;
             printf("%d.client is connected\n", activeClientCount);
 
-            strcpy(response, "Ready to communicate!.."); // fill the response
+            strcpy(response, CLIENT_IS_READY); // fill the response
             responseValue = 1;
         }
         else if (strcmp(commands[0], "create") == 0) // if first parameter is create then call create
@@ -327,8 +327,7 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(commands[0], "exit") == 0) // if first parameter is exit then call exit
         {
-            printf("Client logged out!");
-            strcpy(response, "Client finished!"); // fill the response
+            strcpy(response, CLIENT_FINISHED); // fill the response
             responseValue = 1;
             activeClientCount--; // decrease active client activeClientCount
             if (activeClientCount == 0)
@@ -338,6 +337,11 @@ int main(int argc, char *argv[])
                 close(fd);
                 exit(0); // finish program
             }
+        }
+        else
+        {
+            strcpy(response, INVALID_COMMAND); // fill the response
+            responseValue = 1;
         }
         // wait threads until they finish
         for (int i = 0; i < thread_count; i++)
